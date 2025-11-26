@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from models import ModelsInterface
 
 app = FastAPI()
 
@@ -14,24 +15,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+models = ModelsInterface()
+
 class ChatRequest(BaseModel):
     message: str
-
-@app.get("/api/hello")
-def read_root():
-    return {"message": "Hello from Python Backend!"}
+    model: str = "sbert"  
 
 @app.post("/api/chat")
 def chat_endpoint(request: ChatRequest):
-    user_msg = request.message.lower()
+    msg = request.message
 
-    if "hi" in user_msg or "hello" in user_msg:
-        reply = "Hello! How can I help you?"
-    elif "how are you" in user_msg:
-        reply = "I'm just a backend, but I'm doing fine 😄"
-    elif user_msg.strip() == "":
-        reply = "Say something!"
+    if request.model == "sbert":
+        reply = models.reply_sbert(msg)
+    elif request.model == "mistral":
+        reply = models.reply_mistral(msg)
+    elif request.model == "bert":
+        reply = models.reply_bert(msg)
     else:
-        reply = f"You said: {request.message[::-1]}"
+        reply = "Unknown model selected."
 
     return {"reply": reply}

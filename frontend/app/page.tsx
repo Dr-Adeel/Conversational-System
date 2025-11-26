@@ -5,36 +5,61 @@ import { useState, ChangeEvent, KeyboardEvent, useEffect, useRef } from "react";
 interface Message {
   sender: "user" | "bot";
   text: string;
+  model?: string;
+  id?: string; 
 }
 
 export default function Page() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [model, setModel] = useState("sbert"); 
+  const [loading, setLoading] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || loading) return;
 
     setMessages((prev) => [...prev, { sender: "user", text: input }]);
+    setLoading(true);
+
+    const loaderId = Math.random().toString();
+    setMessages((prev) => [
+      ...prev,
+      { sender: "bot", text: "...", model, id: loaderId },
+    ]);
 
     try {
       const res = await fetch("http://localhost:8000/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input }),
+        body: JSON.stringify({ message: input, model }),
       });
 
       const data = await res.json();
 
-      setMessages((prev) => [...prev, { sender: "bot", text: data.reply }]);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === loaderId ? { sender: "bot", text: data.reply, model } : msg
+        )
+      );
     } catch (err) {
       console.error("Error:", err);
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === loaderId
+            ? { sender: "bot", text: "Error: Failed to fetch reply.", model }
+            : msg
+        )
+      );
     }
 
     setInput("");
+    setLoading(false);
   };
 
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => setInput(e.target.value);
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) =>
+    setInput(e.target.value);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") sendMessage();
@@ -86,6 +111,21 @@ export default function Page() {
           Chat with Bot
         </h1>
 
+        <div style={{ display: "flex", padding: 10, gap: 10 }}>
+          <label>
+            Select Model:
+            <select
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              style={{ marginLeft: 5, padding: 5 }}
+            >
+              <option value="sbert">SBERT</option>
+              <option value="bert">BERT</option>
+              <option value="mistral">Mistral</option>
+            </select>
+          </label>
+        </div>
+
         <div
           ref={chatContainerRef}
           style={{
@@ -111,8 +151,10 @@ export default function Page() {
                 maxWidth: "70%",
                 alignSelf: msg.sender === "user" ? "flex-end" : "flex-start",
                 wordBreak: "break-word",
+                fontStyle: msg.sender === "bot" ? "italic" : "normal",
               }}
             >
+              {msg.sender === "bot" && msg.model ? `(${msg.model}) ` : ""}
               {msg.text}
             </div>
           ))}
@@ -131,7 +173,8 @@ export default function Page() {
             value={input}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            placeholder="Type your message..."
+            placeholder={loading ? "Waiting for reply..." : "Type your message..."}
+            disabled={loading}
             style={{
               flex: 1,
               padding: 10,
@@ -140,12 +183,12 @@ export default function Page() {
               borderRadius: 5,
               outline: "none",
               transition: "border-color 0.2s",
+              backgroundColor: loading ? "#eee" : "#fff",
             }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = "#0070f3")}
-            onBlur={(e) => (e.currentTarget.style.borderColor = "#ccc")}
           />
           <button
             onClick={sendMessage}
+            disabled={loading}
             style={{
               padding: "10px 20px",
               fontSize: 16,
@@ -154,11 +197,9 @@ export default function Page() {
               color: "#fff",
               border: "none",
               borderRadius: 5,
-              cursor: "pointer",
+              cursor: loading ? "not-allowed" : "pointer",
               transition: "background-color 0.2s",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#005bb5")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#0070f3")}
           >
             Send
           </button>
