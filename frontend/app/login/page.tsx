@@ -3,13 +3,16 @@
 import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import background from "@/assets/background.png";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const { login, register } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,11 +26,21 @@ export default function LoginPage() {
       return;
     }
 
+    if (isSignUp && !username) {
+      setError("Please enter a username");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      await login(email, password);
+      if (isSignUp) {
+        await register(email, password, username);
+      } else {
+        await login(email, password);
+      }
       router.push("/");
-    } catch (err) {
-      setError("Login failed");
+    } catch (err: any) {
+      setError(err.message || (isSignUp ? "Sign up failed" : "Login failed"));
     } finally {
       setIsLoading(false);
     }
@@ -38,13 +51,18 @@ export default function LoginPage() {
       style={{
         width: "100%",
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        backgroundImage: `url(${background.src})`,
+        backgroundRepeat: "no-repeat",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundAttachment: "fixed",
         display: "flex",
-        justifyContent: "center",
+        justifyContent: "flex-end",
         alignItems: "center",
         position: "relative",
         overflow: "hidden",
         fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif",
+        paddingRight: "6%",
       }}
     >
       {/* Animated background blobs */}
@@ -100,8 +118,8 @@ export default function LoginPage() {
           position: "relative",
           zIndex: 10,
           width: "100%",
-          maxWidth: "450px",
-          padding: "24px",
+          maxWidth: "360px",
+          padding: "16px",
         }}
       >
         {/* Card */}
@@ -109,10 +127,10 @@ export default function LoginPage() {
           style={{
             background: "rgba(255, 255, 255, 0.95)",
             backdropFilter: "blur(10px)",
-            borderRadius: "24px",
-            padding: "48px 40px",
-            boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
+            borderRadius: "20px",
+            padding: "32px 28px",
+            boxShadow: "0 16px 48px rgba(0, 0, 0, 0.25)",
+            border: "1px solid rgba(255, 255, 255, 0.18)",
             animation: "slideIn 0.6s ease-out",
           }}
         >
@@ -123,12 +141,12 @@ export default function LoginPage() {
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: "60px",
-                height: "60px",
+                width: "48px",
+                height: "48px",
                 background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                 borderRadius: "16px",
                 marginBottom: "16px",
-                fontSize: "28px",
+                fontSize: "24px",
                 boxShadow: "0 10px 25px rgba(102, 126, 234, 0.4)",
               }}
             >
@@ -136,7 +154,7 @@ export default function LoginPage() {
             </div>
             <h1
               style={{
-                fontSize: "32px",
+                fontSize: "28px",
                 fontWeight: "700",
                 color: "#1a1a2e",
                 margin: "0 0 8px 0",
@@ -146,21 +164,43 @@ export default function LoginPage() {
                 backgroundClip: "text",
               }}
             >
-              MyShop
+              EiLShop
             </h1>
-            <p
-              style={{
-                fontSize: "14px",
-                color: "#888",
-                margin: "0",
-              }}
-            >
-              Welcome back to your store
+            <p style={{ fontSize: "14px", color: "#888", margin: "0" }}>
+              {isSignUp ? "Create your account" : "Welcome back to your store"}
             </p>
+          </div>
+
+          {/* Tabs */}
+          <div style={{ display: "flex", gap: "12px", marginBottom: "32px", borderBottom: "2px solid #e0e0e0" }}>
+            <button onClick={() => setIsSignUp(false)} style={{ padding: "12px 20px", background: "none", border: "none", fontSize: "15px", fontWeight: "600", color: !isSignUp ? "#667eea" : "#999", cursor: "pointer", borderBottom: !isSignUp ? "3px solid #667eea" : "none", transition: "all 0.3s ease", marginBottom: "-2px" }}>
+              Sign In
+            </button>
+            <button onClick={() => setIsSignUp(true)} style={{ padding: "12px 20px", background: "none", border: "none", fontSize: "15px", fontWeight: "600", color: isSignUp ? "#667eea" : "#999", cursor: "pointer", borderBottom: isSignUp ? "3px solid #667eea" : "none", transition: "all 0.3s ease", marginBottom: "-2px" }}>
+              Sign Up
+            </button>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit}>
+            {/* Username field (Sign Up only) */}
+            {isSignUp && (
+              <div style={{ marginBottom: "20px" }}>
+                <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#333", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Username
+                </label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="your username"
+                  style={{ width: "100%", padding: "14px 16px", border: "2px solid #e0e0e0", borderRadius: "12px", fontSize: "15px", fontFamily: "inherit", boxSizing: "border-box", transition: "all 0.3s ease", backgroundColor: "#f8f9fa", color: "#333" }}
+                  onFocus={(e) => { e.target.style.borderColor = "#667eea"; e.target.style.backgroundColor = "#fff"; e.target.style.boxShadow = "0 0 0 3px rgba(102, 126, 234, 0.1)"; }}
+                  onBlur={(e) => { e.target.style.borderColor = "#e0e0e0"; e.target.style.backgroundColor = "#f8f9fa"; e.target.style.boxShadow = "none"; }}
+                />
+              </div>
+            )}
+
             {/* Email field */}
             <div style={{ marginBottom: "20px" }}>
               <label
@@ -202,6 +242,7 @@ export default function LoginPage() {
                   e.target.style.borderColor = "#e0e0e0";
                   e.target.style.backgroundColor = "#f8f9fa";
                   e.target.style.boxShadow = "none";
+
                 }}
               />
             </div>
@@ -304,7 +345,7 @@ export default function LoginPage() {
                   "0 10px 25px rgba(102, 126, 234, 0.3)";
               }}
             >
-              {isLoading ? "Signing in..." : "Sign In"}
+              {isLoading ? (isSignUp ? "Creating account..." : "Signing in...") : (isSignUp ? "Sign Up" : "Sign In")}
             </button>
           </form>
 
@@ -317,15 +358,8 @@ export default function LoginPage() {
               textAlign: "center",
             }}
           >
-            <p
-              style={{
-                fontSize: "13px",
-                color: "#999",
-                margin: "0",
-                lineHeight: "1.6",
-              }}
-            >
-              Demo credentials: Use any email and password to log in
+            <p style={{ fontSize: "13px", color: "#999", margin: "0", lineHeight: "1.6" }}>
+              {isSignUp ? "Already have an account? Switch to Sign In above" : "Don't have an account? Click Sign Up above"}
             </p>
           </div>
         </div>
