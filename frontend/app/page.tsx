@@ -11,7 +11,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-
+//register
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 import slider1 from "@/assets/slider1.jpg";
 import slider2 from "@/assets/slider2.png";
